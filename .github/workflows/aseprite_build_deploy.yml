@@ -121,7 +121,7 @@ jobs:
       - name: Run Ninja
         working-directory: aseprite/build
         run: ninja aseprite
-      - name: Clean up build
+      - name: Clean up build-
         working-directory: aseprite/build/bin
         shell: bash
         run: rm -f gen modp_b64_gen gen.exe gen.exe.manifest modp_b64_gen.exe modp_b64_gen.exe.manifest
