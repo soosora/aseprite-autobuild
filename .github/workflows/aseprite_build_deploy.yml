@@ -120,3 +120,5 @@ jobs:
           file: aseprite/build/bin/Aseprite-${{ needs.create-release.outputs.release-tag }}-${{ runner.os }}.zip
           asset_name: Aseprite-${{ needs.create-release.outputs.release-tag }}-${{ runner.os }}.zip
           tag: ${{ needs.create-release.outputs.release-tag }}
+
+
