@@ -40,22 +40,27 @@ jobs:
       # 4. Clonar o repositório do Aseprite (branch `main`)
       - name: Clonar repositório do Aseprite
         run: |
-          git clone --depth=1 --branch=main https://github.com/aseprite/aseprite.git aseprite
+          git clone --recursive --depth=1 --branch=main https://github.com/aseprite/aseprite.git aseprite
+      
+      # 5. Atualizar os submódulos (caso necessário)
+      - name: Atualizar submódulos
+        working-directory: aseprite
+        run: git submodule update --init --recursive
 
-      # 5. Compilar o Aseprite
+      # 6. Compilar o Aseprite
       - name: Compilar Aseprite
         run: |
           mkdir -p aseprite/build
           cd aseprite/build
           cmake \
-            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DCMAKE_BUILD_TYPE=Release \
             -DLAF_BACKEND=skia \
             -DSKIA_DIR=../../skia \
             -DSKIA_LIBRARY_DIR=../../skia/out/Release-x64 \
             -G Ninja ..
           ninja aseprite
 
-      # 6. Criar um Release no GitHub
+      # 7. Criar um Release no GitHub
       - name: Criar Release
         id: criar_release
         uses: actions/create-release@v1
@@ -67,7 +72,7 @@ jobs:
           draft: false
           prerelease: true
 
-      # 7. Fazer upload do binário compilado
+      # 8. Fazer upload do binário compilado
       - name: Fazer upload do binário compilado
         uses: actions/upload-release-asset@v1
         env:
