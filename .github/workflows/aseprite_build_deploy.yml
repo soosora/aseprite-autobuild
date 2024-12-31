@@ -1,40 +1,51 @@
 name: Build and Release Aseprite
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
 
 jobs:
-  build:
+  build-and-release:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
+
     steps:
-      - name: Checkout repository
+      # 1. Checkout do código do repositório atual
+      - name: Checkout código
         uses: actions/checkout@v3
 
-      - name: Install dependencies
+      # 2. Instalar as dependências necessárias
+      - name: Instalar dependências
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            g++ cmake ninja-build libx11-dev libxcursor-dev libxi-dev libgl1-mesa-dev libfontconfig1-dev curl unzip
+            g++ \
+            cmake \
+            ninja-build \
+            libx11-dev \
+            libxcursor-dev \
+            libxi-dev \
+            libgl1-mesa-dev \
+            libfontconfig1-dev \
+            curl \
+            unzip \
+            git
 
-      - name: Download Skia
+      # 3. Baixar e configurar o Skia
+      - name: Baixar e extrair Skia
         run: |
-          SKIA_VERSION=m102-861e4743af
-          SKIA_URL=https://github.com/aseprite/skia/releases/download/${SKIA_VERSION}/Skia-Linux-Release-x64-libstdc++.zip
+          SKIA_VERSION="m102-861e4743af"
+          SKIA_URL="https://github.com/aseprite/skia/releases/download/${SKIA_VERSION}/Skia-Linux-Release-x64-libstdc++.zip"
           curl -L $SKIA_URL -o skia.zip
           unzip skia.zip -d skia
 
-      - name: Clone Aseprite
+      # 4. Clonar o repositório do Aseprite (branch `main`)
+      - name: Clonar repositório do Aseprite
         run: |
-          git clone --recursive https://github.com/aseprite/aseprite.git
-          mkdir -p aseprite/build
+          git clone --depth=1 --branch=main https://github.com/aseprite/aseprite.git aseprite
 
-      - name: Configure and Build Aseprite
+      # 5. Compilar o Aseprite
+      - name: Compilar Aseprite
         run: |
+          mkdir -p aseprite/build
           cd aseprite/build
           cmake \
             -DCMAKE_BUILD_TYPE=RelWithDebInfo \
@@ -44,31 +55,25 @@ jobs:
             -G Ninja ..
           ninja aseprite
 
-      - name: Archive Aseprite
-        run: |
-          cd aseprite/build/bin
-          tar -czvf aseprite.tar.gz aseprite
+      # 6. Criar um Release no GitHub
+      - name: Criar Release
+        id: criar_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: nightly-${{ github.run_id }}
+          release_name: Nightly Build ${{ github.run_id }}
+          draft: false
+          prerelease: true
 
-      - name: Create GitHub Release
-        id: create_release
-        uses: actions/github-script@v6
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const { data: release } = await github.rest.repos.createRelease({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              tag_name: `aseprite-${new Date().toISOString().split('T')[0]}`,
-              name: `Aseprite Build - ${new Date().toISOString().split('T')[0]}`,
-              draft: false,
-              prerelease: false,
-            });
-            core.setOutput("upload_url", release.upload_url);
-      
-      - name: Upload Release Asset
+      # 7. Fazer upload do binário compilado
+      - name: Fazer upload do binário compilado
         uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: aseprite/build/bin/aseprite.tar.gz
-          asset_name: aseprite.tar.gz
-          asset_content_type: application/gzip
+          upload_url: ${{ steps.criar_release.outputs.upload_url }}
+          asset_path: aseprite/build/bin/aseprite
+          asset_name: aseprite-linux
+          asset_content_type: application/octet-stream
