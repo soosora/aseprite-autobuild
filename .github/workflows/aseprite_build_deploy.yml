@@ -8,11 +8,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout do código do repositório atual
-      - name: Checkout código
-        uses: actions/checkout@v3
-
-      # 2. Instalar as dependências necessárias
+      # 1. Instalar as dependências necessárias
       - name: Instalar dependências
         run: |
           sudo apt-get update
@@ -29,7 +25,17 @@ jobs:
             unzip \
             git
 
-      # 3. Baixar e configurar o Skia
+      # 2. Clonar o repositório do Aseprite com submódulos
+      - name: Clonar repositório do Aseprite
+        run: |
+          git clone --recursive --depth=1 --branch=main https://github.com/aseprite/aseprite.git aseprite
+
+      # 3. Atualizar os submódulos (caso necessário)
+      - name: Atualizar submódulos
+        working-directory: aseprite
+        run: git submodule update --init --recursive
+
+      # 4. Baixar e configurar o Skia
       - name: Baixar e extrair Skia
         run: |
           SKIA_VERSION="m102-861e4743af"
@@ -37,17 +43,7 @@ jobs:
           curl -L $SKIA_URL -o skia.zip
           unzip skia.zip -d skia
 
-      # 4. Clonar o repositório do Aseprite (branch `main`)
-      - name: Clonar repositório do Aseprite
-        run: |
-          git clone --recursive --depth=1 --branch=main https://github.com/aseprite/aseprite.git aseprite
-      
-      # 5. Atualizar os submódulos (caso necessário)
-      - name: Atualizar submódulos
-        working-directory: aseprite
-        run: git submodule update --init --recursive
-
-      # 6. Compilar o Aseprite
+      # 5. Compilar o Aseprite
       - name: Compilar Aseprite
         run: |
           mkdir -p aseprite/build
@@ -60,7 +56,7 @@ jobs:
             -G Ninja ..
           ninja aseprite
 
-      # 7. Criar um Release no GitHub
+      # 6. Criar um Release no GitHub
       - name: Criar Release
         id: criar_release
         uses: actions/create-release@v1
@@ -71,6 +67,10 @@ jobs:
           release_name: Nightly Build ${{ github.run_id }}
           draft: false
           prerelease: true
+
+      # 7. Salvar a URL de upload no GITHUB_OUTPUT
+      - name: Salvar URL de upload
+        run: echo "upload_url=${{ steps.criar_release.outputs.upload_url }}" >> $GITHUB_OUTPUT
 
       # 8. Fazer upload do binário compilado
       - name: Fazer upload do binário compilado
