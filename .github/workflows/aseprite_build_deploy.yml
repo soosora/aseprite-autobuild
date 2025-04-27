@@ -80,3 +80,4 @@ jobs:
           asset_path: aseprite/build/bin/aseprite
           asset_name: aseprite-linux
           asset_content_type: application/octet-stream
+
