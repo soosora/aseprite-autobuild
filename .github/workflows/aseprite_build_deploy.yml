@@ -5,10 +5,13 @@ on:
 
 jobs:
   build-and-release:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
 
     steps:
-      # 1. Instalar as dependências necessárias
+      # 1. Instalar as dependências
       - name: Instalar dependências
         run: |
           sudo apt-get update -qq
@@ -33,6 +36,8 @@ jobs:
           SKIA_URL="https://github.com/aseprite/skia/releases/download/${SKIA_VERSION}/Skia-Linux-Release-x64-libstdc++.zip"
           curl -L $SKIA_URL -o skia.zip
           unzip skia.zip -d skia
+          # Download missing icudtl.dat file
+          curl -L https://github.com/Akryum/nux/raw/refs/heads/master/icudtl.dat -o skia/third_party/externals/icu/flutter/icudtl.dat
 
       # 5. Compilar o Aseprite
       - name: Compilar Aseprite
@@ -44,6 +49,8 @@ jobs:
             -DLAF_BACKEND=skia \
             -DSKIA_DIR=../../skia \
             -DSKIA_LIBRARY_DIR=../../skia/out/Release-x64 \
+            -DICU_DATA_FILE=../../skia/third_party/externals/icu/flutter/icudtl.dat \
+            -DLIBJPEG_TURBO_DIR=../../skia/third_party/externals/libjpeg-turbo \
             -G Ninja ..
           ninja aseprite
 
